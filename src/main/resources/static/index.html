@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; border: 1px solid #ccc; }
+        th { background-color: #f4f4f4; }
+    </style>
+</head>
+<body>
+    <h1>Product Management</h1>
+
+    <h2>Add / Update Product</h2>
+    <form id="productForm">
+        <input type="hidden" id="productId"> <!-- Hidden input for product ID -->
+        <input type="text" id="name" placeholder="Product Name" required>
+        <input type="number" id="price" placeholder="Product Price" required>
+        <button type="submit">Add Product</button>
+    </form>
+
+    <h2>Product List</h2>
+    <table id="productTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Product rows will be added here -->
+        </tbody>
+    </table>
+
+    <script>
+        const productTable = document.getElementById('productTable').getElementsByTagName('tbody')[0];
+
+        // Fetch and display all products
+        function fetchProducts() {
+            fetch('/api/products')
+                .then(response => response.json())
+                .then(data => {
+                    productTable.innerHTML = ''; // Clear existing rows
+                    data.forEach(product => {
+                        const row = productTable.insertRow();
+                        row.innerHTML = `
+                            <td>${product.id}</td>
+                            <td>${product.name}</td>
+                            <td>${product.price}</td>
+                            <td>
+                                <button onclick="editProduct(${product.id}, '${product.name}', ${product.price})">Edit</button>
+                                <button onclick="deleteProduct(${product.id})">Delete</button>
+                            </td>
+                        `;
+                    });
+                });
+        }
+
+        // Edit a product
+        function editProduct(id, name, price) {
+            document.getElementById('productId').value = id; // Set product ID in the hidden field
+            document.getElementById('name').value = name; // Populate name in the input
+            document.getElementById('price').value = price; // Populate price in the input
+            document.querySelector('button[type="submit"]').innerText = 'Update Product'; // Change button text
+        }
+
+        // Add or update a product
+        document.getElementById('productForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const id = document.getElementById('productId').value; // Get product ID
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+
+            if (id) {
+                // If ID exists, it's an update
+                fetch(`/api/products/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, price })
+                })
+                .then(() => {
+                    fetchProducts(); // Refresh the product list
+                    resetForm(); // Reset form fields
+                });
+            } else {
+                // Otherwise, it's a create
+                fetch('/api/products', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, price })
+                })
+                .then(() => {
+                    fetchProducts(); // Refresh the product list
+                    resetForm(); // Reset form fields
+                });
+            }
+        });
+
+        // Reset form fields
+        function resetForm() {
+            document.getElementById('productId').value = ''; // Clear hidden ID field
+            document.getElementById('name').value = ''; // Clear name input
+            document.getElementById('price').value = ''; // Clear price input
+            document.querySelector('button[type="submit"]').innerText = 'Add Product'; // Reset button text
+        }
+
+        // Delete a product
+        function deleteProduct(id) {
+            fetch(`/api/products/${id}`, {
+                method: 'DELETE',
+            })
+            .then(() => fetchProducts()); // Refresh the product list
+        }
+
+        // Initial fetch of products
+        fetchProducts();
+    </script>
+</body>
+</html>
